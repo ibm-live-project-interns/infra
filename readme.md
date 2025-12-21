@@ -1,6 +1,5 @@
-Here is the `README.md` content, ready for you to copy and paste:
 
-```markdown
+
 # 🚀 DevOps Orchestrator
 
 A **Zero-Config Bootstrap Tool** that automates the setup of our Microservices environment (Go, React, Kafka, Postgres) on local Windows machines.
@@ -80,6 +79,3 @@ devops-tool/
 
 ```
 
-```
-
-```
