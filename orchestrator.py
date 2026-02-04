@@ -57,8 +57,8 @@ class DevOpsManager:
 
         return status
 
-    def bootstrap_environment(self, branch_map):
-        self.log(f"🚀 Starting Bootstrap on {WORK_DIR}...")
+    def bootstrap_environment(self, branch_map, use_local=False):
+        self.log(f"🚀 Starting Bootstrap on {WORK_DIR} (Local Mode: {use_local})...")
         
         # 1. Scaffold Directories
         if not WORK_DIR.exists():
@@ -79,7 +79,7 @@ class DevOpsManager:
         # 3. Generate Compose
         self.log("📄 Generating docker-compose.yml...")
         with open(WORK_DIR / "docker-compose.yml", "w", encoding="utf-8") as f:
-            f.write(docker_ops.generate_compose_file(REPOS))
+            f.write(docker_ops.generate_compose_file(REPOS, use_local=use_local))
 
         # 4. Git Operations (Clone/Update)
         for repo in REPOS:
@@ -87,7 +87,26 @@ class DevOpsManager:
             branch = branch_map.get(name, "main")
             path = WORK_DIR / "services" / name
             
-            git_ops.clone_or_update(name, repo["url"], path, branch, self.log)
+            # 4. Git Operations (Clone/Update) OR Local Link
+            if use_local:
+                 # Check if local folder exists in project root (../../name)
+                 project_root = WORK_DIR.parent.parent
+                 local_src = project_root / name
+                 
+                 if local_src.exists() and local_src.is_dir():
+                     self.log(f"🔗 Linking Local Source: {name} -> {path}")
+                     # Remove existing directory/link if present
+                     if path.exists(follow_symlinks=False):
+                         if path.is_symlink(): path.unlink()
+                         else: shutil.rmtree(path)
+                     
+                     # Create Symlink
+                     os.symlink(local_src, path)
+                 else:
+                     self.log(f"⚠️ Local source for {name} not found at {local_src}. Falling back to Git.")
+                     git_ops.clone_or_update(name, repo["url"], path, branch, self.log)
+            else:
+                git_ops.clone_or_update(name, repo["url"], path, branch, self.log)
             
             # Inject Mock if needed
             dockerfile = path / "Dockerfile"

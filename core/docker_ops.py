@@ -13,35 +13,49 @@ def check_engine():
     except:
         return False
 
-def generate_compose_file(repos):
+def generate_compose_file(repos, use_local=False):
     """Generates the Docker Compose YAML string."""
     services_block = ""
     for repo in repos:
         name = repo["name"]
-        
+
         # Dependency Logic
         depends_on = []
-        if name in ["datasource", "ingestor"]: depends_on.append("postgres")
-        if name in ["ingestor", "ai-core"]: depends_on.append("kafka")
-            
+        if name in ["datasource", "api-gateway"]:
+            depends_on.append(("postgres", "service_healthy"))
+        if name in ["api-gateway", "ingestor-core", "event-router", "ai-core"]:
+            depends_on.append(("kafka", "service_healthy"))
+        if name == "event-router":
+            depends_on.append(("api-gateway", "service_started"))
+
         depends_block = ""
         if depends_on:
             conditions = []
-            for dep in depends_on:
-                condition = "service_healthy" if dep == "postgres" else "service_healthy"
+            for dep, condition in depends_on:
                 conditions.append(f"      {dep}:\n        condition: {condition}")
             depends_block = "    depends_on:\n" + "\n".join(conditions)
 
+        # Ports
+        ports_block = ""
+        if "ports" in repo:
+            ports_list = '", "'.join(repo["ports"])
+            ports_block = f'    ports: [ "{ports_list}" ]\n'
+
+        # Build context - use the repo's specified context and dockerfile
+        context = repo.get("context", f"./services/{name}")
+        dockerfile = repo.get("dockerfile", f"{name}/Dockerfile")
+
+        build_block = f"""    build:
+      context: {context}
+      dockerfile: {dockerfile}"""
+
         services_block += f"""
   {name}:
-    build:
-      context: ./services/{name}
-      args:
-        SERVICE_NAME: {name}
+{build_block}
     env_file: .env
-    networks: [org-network]
+    networks: [ org-network ]
     restart: on-failure
-{depends_block}
+{ports_block}{depends_block}
 """
     return f"""networks:
   org-network:

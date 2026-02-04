@@ -1,22 +1,4 @@
-from pathlib import Path
 
-# --- GLOBAL CONFIGURATION ---
-BASE_DIR = Path.cwd()
-PROJECT_NAME = "prod"
-WORK_DIR = BASE_DIR / PROJECT_NAME
-
-# Repository Definitions
-REPOS = [
-    {"name": "datasource", "url": "https://github.com/ibm-live-project-interns/datasource.git", "dockerfile": "datasource/Dockerfile", "context": "../../"},
-    {"name": "api-gateway", "url": "https://github.com/ibm-live-project-interns/ingestor.git", "dockerfile": "ingestor/api_gateway/Dockerfile", "context": "../../", "ports": ["8080:8080"]},
-    {"name": "event-router", "url": "https://github.com/ibm-live-project-interns/ingestor.git", "dockerfile": "ingestor/event_router/Dockerfile", "context": "../../ingestor", "ports": ["8082:8082"]},
-    {"name": "ingestor-core", "url": "https://github.com/ibm-live-project-interns/ingestor.git", "dockerfile": "ingestor/ingestor_core/Dockerfile", "context": "../../ingestor", "ports": ["8001:8001"]},
-    {"name": "ai-core", "url": "https://github.com/ibm-live-project-interns/ai-core.git", "dockerfile": "ai-core/Dockerfile", "context": "../../"},
-    {"name": "ui", "url": "https://github.com/ibm-live-project-interns/ui.git", "dockerfile": "Dockerfile", "context": "../../ui", "ports": ["3000:3000"]}
-]
-
-# Database Init Script (NOC Platform Schema)
-INIT_SQL = """
 -- NOC Database Initialization Script
 -- Creates required tables for the NOC platform
 
@@ -112,12 +94,3 @@ VALUES
     ('Escalations', 47, '-47%', 'positive'),
     ('Accuracy', 94.8, '94.8%', 'positive')
 ON CONFLICT DO NOTHING;
-"""
-
-# Mock Dockerfile Content
-MOCK_DOCKERFILE = """FROM alpine:latest
-ARG SERVICE_NAME
-ENV MY_SVC_NAME=$SERVICE_NAME
-RUN echo "Mock Setup Complete"
-CMD ["sh", "-c", "while true; do echo [MOCK] Service is sleeping...; sleep 30; done"]
-"""
