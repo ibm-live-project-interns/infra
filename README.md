@@ -50,7 +50,7 @@ python run_local.py
 For production deployment from GitHub:
 
 ```bash
-python run.py
+python run_headless.py
 ```
 
 ---
@@ -59,10 +59,10 @@ python run.py
 
 | Goal | Streamlit UI | Python CLI |
 | --- | --- | --- |
-| **Start Environment** | Click **▶ Initialize & Start** on the dashboard | `python run.py` or `python run_local.py` |
+| **Start Environment** | Click **▶ Initialize & Start** on the dashboard | `python run_headless.py` or `python run_local.py` |
 | **Stop Environment** | Click **⏹ Stop** | `cd prod && docker compose down` |
 | **Fix Broken State** | Click **💀 Hard Reset** | `cd prod && docker compose down -v` |
-| **Change Branch** | Open **⚙️ Repository Config**, select branch | Edit `branch_map` in run.py |
+| **Change Branch** | Open **⚙️ Repository Config**, select branch | Edit `branch_map` in run_headless.py |
 | **View Logs** | Check dashboard status panel | `cd prod && docker compose logs -f [service]` |
 
 ---
@@ -140,7 +140,7 @@ NOC Platform
 ```text
 infra/
 ├── app.py                 # Streamlit UI Layer
-├── run.py                 # Production bootstrap (GitHub repos)
+├── run_headless.py        # Production bootstrap (GitHub repos)
 ├── run_local.py           # Development bootstrap (local code)
 ├── orchestrator.py        # State Management & Lifecycle
 ├── core/
@@ -236,7 +236,7 @@ Use `run_local.py` to link your local code directories:
 - Hot-reload changes without rebuilding Docker images
 
 ### Production Deployment
-Use `run.py` to clone from GitHub:
+Use `run_headless.py` to clone from GitHub:
 - Clones all repositories into `prod/services/`
 - Can switch branches via branch_map configuration
 

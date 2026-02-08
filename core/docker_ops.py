@@ -108,7 +108,6 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
-      - zookeeper_data:/var/lib/zookeeper/log
     networks: [org-network]
     healthcheck:
       test: echo srvr | nc localhost 2181 || exit 1

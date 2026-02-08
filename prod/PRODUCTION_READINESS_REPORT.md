@@ -65,7 +65,7 @@ No authentication required (add auth in production)
 
 **Current Configuration:**
 ```bash
-WATSONX_API_KEYS=rxmG5wDHtR6PJWoXPP1GHYn1IXaBgBLtiFAGFHdFS8JJ,bUhO1vxgQMDHhpxCQFochF3_QL9INFBxeYNo94ywLNZb
+WATSONX_API_KEYS=bUhO1vxgQMDHhpxCQFochF3_QL9INFBxeYNo94ywLNZb
 WATSONX_REGION=eu-gb
 WATSONX_PROJECT_ID=913d34b6-2c2c-4fc7-9701-6b2ed8db5487
 ```
