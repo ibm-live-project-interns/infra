@@ -199,11 +199,16 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO ai_metrics (name, value, change, trend)
-VALUES 
+VALUES
     ('Resolution Time', 50, '-50%', 'positive'),
     ('Escalations', 47, '-47%', 'positive'),
     ('Accuracy', 94.8, '94.8%', 'positive')
 ON CONFLICT DO NOTHING;
+
+-- Default admin user (email: admin@admin.com, password: admin123)
+INSERT INTO users (email, username, password, first_name, last_name, role, is_active, email_verified)
+VALUES ('admin@admin.com', 'admin', '$2a$12$UbCuBbijlSXuVgyAG4Iwk.tiY9VOp16P4r6zhbsTt3IOL5HPzUAVC', 'Admin', 'User', 'network-ops', true, true)
+ON CONFLICT (email) DO NOTHING;
 """
 
 # Mock Dockerfile Content

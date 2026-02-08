@@ -25,15 +25,19 @@ CREATE TABLE IF NOT EXISTS alerts (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
-    severity VARCHAR(20) NOT NULL CHECK (severity IN ('critical', 'major', 'minor', 'info')),
-    status VARCHAR(20) NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'acknowledged', 'in-progress', 'resolved', 'dismissed')),
-    device_name VARCHAR(100) NOT NULL,
+    severity VARCHAR(20) NOT NULL CHECK (severity IN ('critical', 'high', 'major', 'medium', 'minor', 'low', 'info')),
+    status VARCHAR(20) NOT NULL DEFAULT 'open' CHECK (status IN ('new', 'open', 'acknowledged', 'in-progress', 'resolved', 'dismissed')),
+    device_name VARCHAR(100) DEFAULT '',
     device_ip VARCHAR(45),
     device_icon VARCHAR(50),
     device_model VARCHAR(100),
     device_vendor VARCHAR(100),
     ai_title TEXT,
     ai_summary TEXT,
+    ai_root_cause TEXT,
+    ai_impact TEXT,
+    ai_recommendation TEXT,
+    ai_confidence FLOAT DEFAULT 0,
     confidence INT DEFAULT 0,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     timestamp_absolute TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -188,8 +192,96 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO ai_metrics (name, value, change, trend)
-VALUES 
+VALUES
     ('Resolution Time', 50, '-50%', 'positive'),
     ('Escalations', 47, '-47%', 'positive'),
     ('Accuracy', 94.8, '94.8%', 'positive')
 ON CONFLICT DO NOTHING;
+
+-- Threshold Rules (alert triggering configuration)
+CREATE TABLE IF NOT EXISTS threshold_rules (
+    id VARCHAR(50) PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    name VARCHAR(100) NOT NULL,
+    description TEXT DEFAULT '',
+    condition VARCHAR(255) NOT NULL DEFAULT '',
+    duration VARCHAR(50) DEFAULT '',
+    severity VARCHAR(20) NOT NULL DEFAULT 'warning',
+    enabled BOOLEAN DEFAULT true
+);
+CREATE INDEX IF NOT EXISTS idx_threshold_rules_deleted_at ON threshold_rules(deleted_at);
+
+-- Notification Channels
+CREATE TABLE IF NOT EXISTS notification_channels (
+    id VARCHAR(50) PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(20) NOT NULL DEFAULT 'Email',
+    meta TEXT DEFAULT '',
+    active BOOLEAN DEFAULT true
+);
+CREATE INDEX IF NOT EXISTS idx_notification_channels_deleted_at ON notification_channels(deleted_at);
+
+-- Escalation Policies
+CREATE TABLE IF NOT EXISTS escalation_policies (
+    id VARCHAR(50) PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    name VARCHAR(100) NOT NULL,
+    description TEXT DEFAULT '',
+    steps INT DEFAULT 1,
+    active BOOLEAN DEFAULT true
+);
+CREATE INDEX IF NOT EXISTS idx_escalation_policies_deleted_at ON escalation_policies(deleted_at);
+
+-- Maintenance Windows
+CREATE TABLE IF NOT EXISTS maintenance_windows (
+    id VARCHAR(50) PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    name VARCHAR(100) NOT NULL,
+    schedule VARCHAR(200) DEFAULT '',
+    duration VARCHAR(100) DEFAULT '',
+    status VARCHAR(20) DEFAULT 'scheduled'
+);
+CREATE INDEX IF NOT EXISTS idx_maintenance_windows_deleted_at ON maintenance_windows(deleted_at);
+
+-- Seed default configuration data
+INSERT INTO threshold_rules (id, name, description, condition, severity, enabled)
+VALUES
+    ('RULE-001', 'High CPU Usage', 'Alert when CPU usage exceeds threshold', 'CPU > 90% for 5m', 'critical', true),
+    ('RULE-002', 'Memory Pressure', 'Alert on high memory utilization', 'Memory > 85% for 10m', 'major', true),
+    ('RULE-003', 'Interface Packet Loss', 'Alert when packet loss is detected', 'Packet Loss > 1% for 3m', 'warning', true),
+    ('RULE-004', 'Disk Space Warning', 'Alert when disk usage is high', 'Disk > 80% for 15m', 'warning', true),
+    ('RULE-005', 'BGP Session Down', 'Alert when BGP session drops', 'BGP State != Established', 'critical', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO notification_channels (id, name, type, meta, active)
+VALUES
+    ('CH-001', '#netops-alerts', 'Slack', '14 alerts/hr', true),
+    ('CH-002', 'oncall@company.com', 'Email', '8 alerts/hr', true),
+    ('CH-003', '+1-555-0100', 'Twilio', 'Critical only', false)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO escalation_policies (id, name, description, steps, active)
+VALUES
+    ('POL-001', 'Critical Infrastructure', 'For critical network failures - immediate escalation', 3, true),
+    ('POL-002', 'Standard Operations', 'For medium/low alerts - gradual escalation', 5, true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO maintenance_windows (id, name, schedule, duration, status)
+VALUES
+    ('MW-001', 'Weekly Switch Maintenance', 'Sundays 02:00-06:00 UTC', '4 hours', 'active'),
+    ('MW-002', 'Monthly Firmware Updates', '1st Saturday 00:00-04:00 UTC', '4 hours', 'scheduled')
+ON CONFLICT (id) DO NOTHING;
+
+-- Default admin user (email: admin@admin.com, password: admin123)
+INSERT INTO users (email, username, password, first_name, last_name, role, is_active, email_verified)
+VALUES ('admin@admin.com', 'admin', '$2a$12$UbCuBbijlSXuVgyAG4Iwk.tiY9VOp16P4r6zhbsTt3IOL5HPzUAVC', 'Admin', 'User', 'network-ops', true, true)
+ON CONFLICT (email) DO NOTHING;

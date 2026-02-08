@@ -73,6 +73,7 @@ Once all services are running (Green status), access these endpoints:
 
 ### User Interfaces
 * **React Frontend:** [http://localhost:3000](http://localhost:3000)
+  - **Login:** `admin@admin.com` / `admin123`
   - NOC Alert Dashboard
   - Priority Alerts View
   - Device Monitoring
@@ -93,13 +94,16 @@ Once all services are running (Green status), access these endpoints:
 
 ### API Endpoints
 * **API Gateway:** [http://localhost:8080](http://localhost:8080)
+  - `/api/v1/login` - Authentication (POST)
   - `/api/v1/alerts` - Get all alerts
   - `/api/v1/alerts/:id` - Get specific alert
   - `/api/v1/alerts/summary` - Get alert summary
+  - `/api/v1/tickets` - Tickets CRUD
   - `/api/v1/ai/metrics` - Get AI metrics
   - `/api/v1/ai/insights` - Get AI insights and recommendations
   - `/api/v1/devices` - Get devices
   - `/api/v1/devices/noisy` - Get noisy devices
+  - `/api/v1/health` - Health check
 
 * **Ingestor Core:** [http://localhost:8001](http://localhost:8001)
   - `/ingest/event` - Ingest events (POST)
