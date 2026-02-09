@@ -281,6 +281,26 @@ VALUES
     ('MW-002', 'Monthly Firmware Updates', '1st Saturday 00:00-04:00 UTC', '4 hours', 'scheduled')
 ON CONFLICT (id) DO NOTHING;
 
+-- Audit Logs table (system-wide activity trail)
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    user_id INTEGER NOT NULL,
+    username VARCHAR(100) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    resource VARCHAR(100) NOT NULL,
+    resource_id VARCHAR(100),
+    details JSONB,
+    ip_address VARCHAR(45),
+    result VARCHAR(20) NOT NULL DEFAULT 'success'
+);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_username ON audit_logs(username);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_resource_id ON audit_logs(resource_id);
+
 -- Default admin user (email: admin@admin.com, password: admin123)
 INSERT INTO users (email, username, password, first_name, last_name, role, is_active, email_verified)
 VALUES ('admin@admin.com', 'admin', '$2a$12$UbCuBbijlSXuVgyAG4Iwk.tiY9VOp16P4r6zhbsTt3IOL5HPzUAVC', 'Admin', 'User', 'network-ops', true, true)
