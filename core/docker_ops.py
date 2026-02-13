@@ -1,10 +1,9 @@
 import subprocess
 import json
-from .config import REPOS
+from .config import SERVICES
 
-# Explicitly list infra services to check status for
-# Added 'kafka-ui' and 'pgadmin'
 INFRA_NAMES = ["postgres", "kafka", "zookeeper", "kafka-ui", "pgadmin"]
+
 
 def check_engine():
     try:
@@ -13,35 +12,37 @@ def check_engine():
     except:
         return False
 
-def generate_compose_file(repos):
-    """Generates the Docker Compose YAML string."""
+
+def generate_compose_file(services, use_local=False):
+    """Generates the Docker Compose YAML string from SERVICES config."""
     services_block = ""
-    for repo in repos:
-        name = repo["name"]
-        
-        # Dependency Logic
-        depends_on = []
-        if name in ["datasource", "ingestor"]: depends_on.append("postgres")
-        if name in ["ingestor", "ai-core"]: depends_on.append("kafka")
-            
+    for svc in services:
+        name = svc["name"]
+        context = svc["local_context"] if use_local else svc["context"]
+
+        # Ports
+        ports_block = ""
+        if svc.get("ports"):
+            ports_list = '", "'.join(svc["ports"])
+            ports_block = f'    ports: ["{ports_list}"]\n'
+
+        # Dependencies
         depends_block = ""
-        if depends_on:
+        if svc.get("depends_on"):
             conditions = []
-            for dep in depends_on:
-                condition = "service_healthy" if dep == "postgres" else "service_healthy"
+            for dep, condition in svc["depends_on"]:
                 conditions.append(f"      {dep}:\n        condition: {condition}")
             depends_block = "    depends_on:\n" + "\n".join(conditions)
 
         services_block += f"""
   {name}:
     build:
-      context: ./services/{name}
-      args:
-        SERVICE_NAME: {name}
+      context: {context}
+      dockerfile: {svc['dockerfile']}
     env_file: .env
     networks: [org-network]
     restart: on-failure
-{depends_block}
+{ports_block}{depends_block}
 """
     return f"""networks:
   org-network:
@@ -62,7 +63,7 @@ services:
       POSTGRES_USER: ${{POSTGRES_USER}}
       POSTGRES_PASSWORD: ${{POSTGRES_PASSWORD}}
       POSTGRES_DB: ${{POSTGRES_DB}}
-    volumes: 
+    volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d
     restart: always
@@ -142,26 +143,25 @@ services:
 {services_block}
 """
 
+
 def get_containers_status(work_dir):
     """Returns a dict of service_name -> status"""
     status_map = {}
-    
+
     if not (work_dir / "docker-compose.yml").exists():
         return status_map
-        
+
     try:
-        # Use JSON formatting
         res = subprocess.run(
             ["docker", "compose", "ps", "-a", "--format", "json"],
             cwd=work_dir, capture_output=True, text=True, encoding='utf-8', errors='replace',
             timeout=5
         )
-        
+
         output = res.stdout.strip()
         if output:
             containers = []
-            
-            # --- ROBUST PARSING LOGIC ---
+
             try:
                 parsed = json.loads(output)
                 if isinstance(parsed, list):
@@ -175,12 +175,11 @@ def get_containers_status(work_dir):
                             containers.append(json.loads(line))
                         except:
                             pass
-            
+
             for c in containers:
                 svc_name = c.get("Service")
                 state = c.get("State", "").lower()
-                
-                # Normalization
+
                 if state.startswith("up") or state == "running":
                     clean_state = "Running"
                 elif "exited" in state:
@@ -188,22 +187,20 @@ def get_containers_status(work_dir):
                 else:
                     clean_state = state.title()
 
-                # 1. Primary Match: Service Name
                 if svc_name:
                     status_map[svc_name] = clean_state
-                    
-                # 2. Fallback Match: Container Name
+
                 container_name = c.get("Name", "")
-                
-                for repo in REPOS:
-                    if repo["name"] in container_name and repo["name"] not in status_map:
-                        status_map[repo["name"]] = clean_state
-                        
+
+                for svc in SERVICES:
+                    if svc["name"] in container_name and svc["name"] not in status_map:
+                        status_map[svc["name"]] = clean_state
+
                 for infra in INFRA_NAMES:
                     if infra in container_name and infra not in status_map:
                         status_map[infra] = clean_state
-                            
-    except Exception: 
+
+    except Exception:
         pass
-        
+
     return status_map

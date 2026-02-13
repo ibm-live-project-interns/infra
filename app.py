@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from core.config import REPOS, WORK_DIR
+from core.config import REPOS, SERVICES, SERVICE_TO_REPO, WORK_DIR
 from core.utils import get_timestamp
 from orchestrator import DevOpsManager
 
@@ -35,18 +35,19 @@ with tab_dash:
 
         branch_map = {}
         with st.expander("⚙️ Repository Config", expanded=False):
+            use_local = st.toggle("Use Local Code", value=False, help="Symlink local repos instead of cloning from GitHub")
             cols = st.columns(len(REPOS))
             for idx, repo in enumerate(REPOS):
                 with cols[idx]:
-                    branch_map[repo['name']] = st.text_input(f"{repo['name']}", value="main")
+                    branch_map[repo['name']] = st.text_input(f"{repo['name']}", value="main", disabled=use_local)
 
         st.markdown("---")
         b1, b2, b3 = st.columns(3)
-        
+
         if b1.button("▶ Initialize & Start", type="primary", use_container_width=True):
             st.session_state.logs = f"--- STARTED {get_timestamp()} ---\n"
             with st.spinner("Running Orchestrator..."):
-                if manager.bootstrap_environment(branch_map):
+                if manager.bootstrap_environment(branch_map, use_local=use_local):
                     st.toast("Success!", icon="✅")
                 else:
                     st.error("Failed. Check Logs.")
@@ -58,7 +59,7 @@ with tab_dash:
             st.toast("Stopped", icon="🛑")
             time.sleep(1)
             st.rerun()
-            
+
         if b3.button("💀 Hard Reset", type="secondary", use_container_width=True):
             manager.nuke()
             st.warning("Environment Wiped")
@@ -70,48 +71,46 @@ with tab_dash:
 
     # --- INFRASTRUCTURE SECTION ---
     st.subheader("Infrastructure & Management")
-    
-    # Helper for cards
+
     def card(col, title, raw_status, link=None):
         is_healthy = "running" in str(raw_status).lower()
         display_val = raw_status if raw_status else "Not Created"
-        
+
         with col:
             with st.container(border=True):
                 st.markdown(f"**{title}**")
-                if is_healthy: 
+                if is_healthy:
                     st.success(display_val)
                     if link:
                         st.markdown(f"🔗 [Open GUI]({link})")
-                elif "exited" in str(display_val).lower(): 
+                elif "exited" in str(display_val).lower():
                     st.error(display_val)
-                else: 
+                else:
                     st.warning(display_val)
 
     ic1, ic2, ic3, ic4, ic5 = st.columns(5)
-    
+
     card(ic1, "🐳 Docker", "Active" if status['docker'] else "Offline")
     card(ic2, "🐘 Postgres", status['containers'].get('database', 'Not Created'))
     card(ic3, "🕸️ Kafka", status['containers'].get('kafka', 'Not Created'))
-    
-    # GUI Cards
     card(ic4, "🐘 PgAdmin", status['containers'].get('pgadmin', 'Not Created'), "http://localhost:5050")
     card(ic5, "🕸️ Kafka UI", status['containers'].get('kafka-ui', 'Not Created'), "http://localhost:8090")
 
-    # --- MICROSERVICES SECTION ---
+    # --- MICROSERVICES SECTION (6 services) ---
     st.subheader("Microservices")
-    cols = st.columns(4)
-    for idx, repo in enumerate(REPOS):
-        name = repo['name']
-        with cols[idx % 4]:
+    cols = st.columns(3)
+    for idx, svc in enumerate(SERVICES):
+        name = svc['name']
+        repo_name = SERVICE_TO_REPO.get(name, name)
+        with cols[idx % 3]:
             with st.container(border=True):
                 st.markdown(f"**{name.title()}**")
-                
-                r_stat = status['repos'][name]['status']
+
+                r_stat = status['repos'].get(repo_name, {}).get('status', 'Unknown')
                 if r_stat == "Valid": st.success("✅ Code Ready")
                 elif r_stat == "Mock": st.warning("⚠️ Mock Mode")
                 else: st.error(f"❌ {r_stat}")
-                
+
                 c_stat = status['containers'].get(name, "Not Created")
                 if "running" in str(c_stat).lower(): st.caption(f"🟢 {c_stat}")
                 else: st.caption(f"🔴 {c_stat}")
