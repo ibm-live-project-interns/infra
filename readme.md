@@ -1,6 +1,6 @@
-# DevOps Orchestrator
+# Sentrix DevOps Orchestrator
 
-Zero-config bootstrap tool for the NOC Platform microservices environment (Go, React, Kafka, Postgres).
+Zero-config bootstrap tool for the Sentrix platform microservices environment (Go, React, Kafka, Postgres).
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-UI-ff4b4b)
@@ -31,7 +31,7 @@ Click **Initialize & Start** on the dashboard. That's it.
 
 The orchestrator clones **4 repos** and spins up **6 microservices** + infrastructure.
 
-After containers are healthy, it **automatically seeds the database** with the full schema (16 tables) and demo data — no manual SQL execution required.
+After containers are healthy, it **automatically seeds the database** with the full schema (17 tables) and demo data — no manual SQL execution required.
 
 | Repo | Docker Service(s) | Port |
 |------|-------------------|------|
@@ -72,7 +72,7 @@ Plus infrastructure: Postgres (5432), Kafka (9092), PgAdmin (5050), Kafka UI (80
 
 The orchestrator auto-seeds the database after containers start (Step 7 in bootstrap). The init.sql is **fully idempotent** (`CREATE TABLE IF NOT EXISTS` + `INSERT ... ON CONFLICT DO NOTHING`), so it's safe to run on every bootstrap regardless of DB state.
 
-**16 tables**: `ingestion_data`, `ai_results`, `alerts`, `alert_history`, `devices`, `ai_metrics`, `users`, `sessions`, `api_keys`, `tickets`, `ticket_comments`, `threshold_rules`, `notification_channels`, `escalation_policies`, `maintenance_windows`, `audit_logs`
+**17 tables**: `ingestion_data`, `ai_results`, `alerts`, `alert_history`, `devices`, `ai_metrics`, `users`, `sessions`, `api_keys`, `tickets`, `ticket_comments`, `threshold_rules`, `notification_channels`, `escalation_policies`, `maintenance_windows`, `audit_logs`, `runbooks`
 
 **Seed data**: 10 alerts with AI analysis, 10 devices, 6 tickets with comments, 5 threshold rules, 3 notification channels, 2 escalation policies, 2 maintenance windows, 1 admin user
 
